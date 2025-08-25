@@ -18,8 +18,24 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const FRONTEND_ORIGINS = process.env.FRONTEND_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || [FRONTEND_ORIGIN];
 
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+// Trust proxy so req.secure is correct behind reverse proxies (needed for Secure cookies)
+app.set('trust proxy', 1);
+
+// CORS: allow multiple origins and credentials for cookie/header-based auth
+app.use(cors({
+  origin(origin, callback) {
+    // allow non-browser tools (no origin) and any configured origin
+    if (!origin) return callback(null, true);
+    if (FRONTEND_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+}));
 app.use(cookieParser());
 // Increase body size limits to support base64 image uploads (company logo)
 app.use(express.json({ limit: '10mb' }));

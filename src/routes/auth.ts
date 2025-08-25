@@ -25,6 +25,7 @@ router.post('/login', async (req, res) => {
   }
 
   const access = data.session.access_token;
+  // Set httpOnly cookie for browser-based auth
   res.cookie(COOKIE_NAME, access, COOKIE_OPTS as any);
 
   // Fetch profile
@@ -36,7 +37,8 @@ router.post('/login', async (req, res) => {
     plan: (prof?.plan as 'free' | 'pro') || 'free',
   };
   console.log(`[auth] login ok user=${data.user.id}`);
-  return res.json({ user });
+  // Also return the access token so mobile/Safari clients can use Authorization header
+  return res.json({ user, accessToken: access });
 });
 
 router.post('/register', async (req, res) => {
